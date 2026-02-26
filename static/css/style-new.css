@@ -1,0 +1,265 @@
+/*
+  style-new.css
+  Reworked and corrected UI styles:
+  - fixes for header language/score alignment and duplicate visible link
+  - dropdown content hidden by default
+  - difficulty control fully inside card, visible and not clipped
+  - general spacing/padding fixes
+*/
+
+:root{
+  --bg: #f6f8fa;
+  --card: #ffffff;
+  --muted: #6b7280;
+  --accent: #4ea3d6;
+  --accent-2: #49d67d;
+  --primary-text: #111827;
+  --shadow: 0 8px 24px rgba(18, 24, 40, 0.08);
+  --glass: rgba(255,255,255,0.7);
+  --radius: 16px;
+  --max-width: 1100px;
+  --pill-bg: #ffffff;
+  --pill-border: rgba(30,30,30,0.04);
+}
+
+/* Global reset / base */
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;padding:0;font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:var(--primary-text);background:var(--bg);}
+body{max-width:95%;margin:0 auto;padding:20px 12px 60px 12px;}
+
+/* ---------- Header layout ---------- */
+.app-header{
+  max-width:var(--max-width);
+  margin:6px auto 8px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:12px 6px;
+  box-sizing:border-box;
+}
+
+/* Left: home + title */
+.header-left{display:flex;align-items:center;gap:12px}
+h1#main_title{font-size:1.75rem;margin:0;font-weight:600}
+.icon-text-home{cursor:pointer;color:var(--accent);font-size:1.6rem}
+.icon-text-home:focus{outline:3px solid rgba(78,163,214,0.18);}
+
+/* Right: language + score grouped */
+.header-right{display:flex;align-items:center;gap:18px;}
+
+/* language row keeps the label and the selected language together */
+.language-row{display:flex;align-items:center;gap:8px}
+
+/* small center spacer (keeps header balanced on wide screens) */
+.header-center{flex:1}
+
+/* top-right score */
+#section_accuracy{font-size:1.05rem;color:var(--muted);margin:0}
+
+/* ---------- Card / main container ---------- */
+.container{
+  position:relative;
+  margin:18px auto 0 auto; /* slightly more top margin to avoid overlap with header */
+  padding:20px;
+  width:100%;
+  max-width:var(--max-width);
+  height:62vh;
+  min-height:440px; /* a little taller to accommodate bottom controls */
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+/* Text area (left / center) */
+.main-text-div{
+  overflow-y:auto;
+  position:absolute;
+  left:12%;
+  right:12%;
+  top:6%;
+  bottom:10%; /* a bit more bottom padding to avoid overlapping mic/difficulty */
+}
+
+.main-text{font-size:clamp(1.25rem, 2.6vw, 2.2rem);max-width:85%;margin:0}
+.ipa-text{font-size:clamp(1rem,1.7vw,1.25rem);color:var(--muted);margin-top:8px}
+.ipa-text-small{font-size:0.95rem}
+
+/* Buttons: play sample, play recorded, play user recording */
+.round-button, .round-button-mic, .round-button-play{
+  display:inline-flex;align-items:center;justify-content:center;gap:0;border-radius:999px;border:0;padding:0;width:3.25rem;height:3.25rem;background:linear-gradient(180deg,var(--accent),#3b86b1);color:#fff;box-shadow:0 6px 18px rgba(60,98,130,0.12);cursor:pointer;transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;text-decoration:none}
+
+.round-button:hover, .round-button-mic:hover, .round-button-play:hover{transform:translateY(-3px);filter:brightness(1.03)}
+.round-button.disabled, .round-button.disabled:hover{pointer-events:none;opacity:0.45;transform:none}
+
+.round-button-mic{width:4.25rem;height:4.25rem;background:linear-gradient(180deg,var(--accent-2),#3bb06a);box-shadow:0 10px 28px rgba(50,120,80,0.12)}
+.icon-text-mic{font-size:1.6rem}
+.icon-text{font-size:1rem}
+
+/* play / record group left side inside container */
+.container .controls-left{position:absolute;left:16px;top:18px;display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+
+/* score / pronunciation readout (keeps near the left control but doesn't overlap) */
+#pronunciation_accuracy{position:absolute;left:16px;top:140px;color:var(--muted);font-weight:600}
+
+/* Next button on right (keeps existing class names) */
+.next-button-area{position:absolute;right:12px;top:10%;height:auto}
+.button-next{
+  border-radius:10px;border:none;color:#fff;text-align:center;font-size:2.2rem;box-sizing:border-box;background:linear-gradient(180deg,#56646f,#3f4f59);transition:all .25s ease;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:8px 18px;height:64px;width:10.5rem;
+}
+.button-next span{display:inline-block}
+.button-next:hover{background:linear-gradient(180deg,#6a8aa9,#476a86)}
+
+/* Mic area at bottom center */
+.mic-button-div{position:fixed;left:50%;transform:translateX(-50%);bottom:48px;z-index:20}
+.round-button-play{background:linear-gradient(180deg,#6b7fa0,#4f6e91);width:3rem;height:3rem}
+
+/* ---------- Difficulty control (fixed/problem area) - redesigned and fixed ---------- */
+
+/* wrapper positions the fieldset at the bottom-left inside the card */
+.difficulty-wrapper{
+  position:absolute;
+  left:20px;
+  bottom:20px;
+  z-index:18;
+}
+
+/* fieldset reset */
+.radio{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  background:var(--pill-bg);
+  padding:8px;
+  border-radius:12px;
+  box-shadow: 0 8px 20px rgba(40,40,40,0.05);
+  border: 1px solid var(--pill-border);
+}
+
+/* hide native radios but keep them accessible */
+.radio input[type="radio"]{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+  width:0;
+  height:0;
+}
+
+/* label acts as the visible pill */
+.radio-label{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  border-radius:999px;
+  background:transparent;
+  border:1px solid transparent;
+  font-weight:600;
+  cursor:pointer;
+  user-select:none;
+  transition: all .15s ease;
+  color:var(--muted);
+  font-size:0.95rem;
+}
+
+/* decorative circular indicator (left of label text) */
+.radio-label::before{
+  content: "";
+  display:inline-block;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  border:2px solid #d8dbe0;
+  background:transparent;
+  transition: all .15s ease;
+}
+
+/* checked state: stronger background and filled dot */
+.radio input[type="radio"]:checked + .radio-label{
+  background: linear-gradient(180deg,#eaf5ff,#eff9ff);
+  color:var(--primary-text);
+  border-color: rgba(78,163,214,0.18);
+  box-shadow: 0 6px 18px rgba(78,163,214,0.06);
+}
+
+.radio input[type="radio"]:checked + .radio-label::before{
+  border-color: var(--accent);
+  background: radial-gradient(circle at center, var(--accent) 0, var(--accent) 40%, transparent 41%);
+  transform: scale(1.02);
+}
+
+/* hover/focus on labels for keyboard & mouse users */
+.radio-label:hover,
+.radio-label:focus{
+  transform: translateY(-2px);
+}
+
+/* responsive: wrap lines for small screens */
+@media only screen and (max-width:640px){
+  .difficulty-wrapper{left:12px;bottom:12px}
+  .radio{gap:6px;padding:6px}
+  .radio-label{padding:6px 10px;font-size:0.9rem}
+}
+
+/* ensure dropdown content is hidden by default and absolutely positioned */
+.dropdown{position:relative;display:inline-block}
+.dropbtn{background:transparent;color:var(--accent);padding:6px 8px;border-radius:8px;border:1px solid transparent;cursor:pointer}
+.dropdown-content{
+  display:none; /* HIDDEN by default to avoid the duplicate visible link issue */
+  position:absolute;
+  right:0;
+  top:calc(100% + 8px);
+  background:#fff;
+  min-width:140px;
+  border-radius:8px;
+  box-shadow:0 8px 24px rgba(18,24,40,0.08);
+  z-index:30;
+  padding:6px 0;
+}
+.dropdown-content a{display:block;padding:8px 12px;color:var(--primary-text);text-decoration:none}
+.dropdown-content a:hover{background:#f2f6fb}
+
+/* show dropdown on hover or when JS toggles an open class (both supported) */
+.dropdown:hover .dropdown-content, .dropdown.open .dropdown-content{display:block}
+
+/* small notes / credits */
+.credits-icon-div{font-size:0.9rem;color:var(--muted);margin:0}
+
+/* utility link icon area (kept) */
+.link-icon-div{position:fixed;right:14px;top:14px}
+
+/* Accessibility: keyboard focus */
+button:focus, a:focus, .round-button:focus{outline:3px solid rgba(78,163,214,0.18);outline-offset:2px}
+
+/* Responsive tweaks */
+@media only screen and (max-width:900px){
+  body{padding:12px}
+  .main-text-div{left:8%;right:8%;top:8%;bottom:12%}
+  .button-next{right:6px;top:6%;width:72px;height:56px;font-size:1.5rem}
+  .container{height:60vh;padding:14px}
+  .controls-left{left:12px;top:12px}
+  .ipa-text{font-size:1rem}
+  .mic-button-div{bottom:22px}
+  .app-header{padding:10px 6px}
+}
+
+@media only screen and (max-width:520px){
+  #main_title{font-size:1.25rem}
+  .main-text{font-size:1.05rem}
+  .round-button{width:2.6rem;height:2.6rem}
+  .round-button-mic{width:3.4rem;height:3.4rem}
+  .container{height:62vh;padding:10px}
+  .button-next{display:none}
+  .header-right{gap:10px}
+}
+
+/* Small visual polish for IPA and secondary texts */
+.text-muted{color:var(--muted)}
+
+/* Ensure disabled look for play/record when necessary */
+a.disabled{pointer-events:none;color:#bfc7cc;background:transparent;opacity:0.6}
+
+/* Keep existing class names present but override some legacy rules in your old file */
+.load-more{display:none}
+

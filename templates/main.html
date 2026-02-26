@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Bootstrap (kept as in your original file) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+
+  <!-- Your stylesheet (replace with the improved CSS below) -->
+  <link rel="stylesheet" href="../static/css/style-new.css" />
+
+  <!-- Your JS callbacks (functions already implemented) -->
+  <script src="../static/javascript/callbacks.js" defer></script>
+
+  <title>AI Pronunciation Mistake Detector</title>
+
+  <!-- jQuery and Material icons (kept) -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript" defer></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+</head>
+
+<body>
+  <!-- Header: left (home + title), center (spacer), right (language + score) -->
+  <header class="app-header" role="banner" aria-label="Top header">
+    <div class="header-left">
+      <i class="material-icons icon-text-home" tabindex="0" role="button" aria-label="Home" onclick="history.go(0)">home</i>
+      <h1 id="main_title">AI Pronunciation Trainer</h1>
+    </div>
+
+    <div class="header-center" aria-hidden="true"><!-- intentionally empty spacer --></div>
+
+    <div class="header-right" role="region" aria-label="Language and score">
+      <div class="language-row">
+        <p class="accuracy-text" style="margin:0 8px 0 0;">Language:</p>
+
+        <!-- visible currently-selected language (keeps id so JS can update text) -->
+        <div class="dropdown" style="position:relative;">
+          <button id="languageBox" class="dropbtn accuracy-text" aria-expanded="false" aria-haspopup="true">
+            English
+          </button>
+
+          <!-- dropdown-content is hidden by default via CSS; JS or :hover will show it -->
+          <div class="dropdown-content" role="menu" aria-label="Language choices">
+            <a href="javascript:changeLanguage('en',true)" role="menuitem">English</a>
+            <!-- add more languages here if necessary -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Score readout kept with same id -->
+      <p id="section_accuracy" style="margin: 0 0 0 18px;">| Score: 0</p>
+    </div>
+  </header>
+
+  <!-- Main card container (all interactive elements inside) -->
+  <main class="container" role="main" aria-labelledby="main_title">
+    <!-- LEFT controls (play sample, play recorded) - preserve IDs and function calls -->
+    <div class="controls-left" aria-hidden="false">
+      <a id="playSampleAudio" href="javascript:playAudio()" class="round-button disabled" aria-label="Play sample">
+        <i class="material-icons icon-text">play_arrow</i>
+      </a>
+
+      <a id="playRecordedAudio" href="javascript:playRecording()" class="round-button disabled" aria-label="Play recorded">
+        <i class="material-icons icon-text">record_voice_over</i>
+      </a>
+
+      <p id="pronunciation_accuracy" class="accuracy-text" style="margin:0;">-</p>
+    </div>
+
+    <!-- Center text area (the spoken sentence, IPA, hints). Keep existing IDs. -->
+    <div id="text-area" class="main-text-div" role="region" aria-label="Sentence text area">
+      <p id="original_script" class="bigger-text text-primary main-text"  aria-label="Original sentence">
+        Click on the bar on the right to generate a new sentence (please use Chrome web browser).
+      </p>
+
+      <p id="ipa_script" class="text-muted bigger-text ipa-text" aria-hidden="false">
+        Before speaking, click the mic button below to start recording and then click again when you're done.
+      </p>
+
+      <p id="recorded_ipa_script" class="text-primary ipa-text">
+        On the left bottom you can choose the difficulty. On the upper left you can choose the language.
+      </p>
+    </div>
+
+    <!-- RIGHT: Next button (keeps existing id and onclick) -->
+    <div id="nextButtonDiv" class="next-button-area">
+      <button id="buttonNext" class="expanded button-next" onclick="javascript:getNextSample()" aria-label="Next sentence">
+        <span>Next</span>
+      </button>
+    </div>
+
+    <!-- BOTTOM-LEFT: Difficulty radio controls (moved inside card). Keep original radio IDs. -->
+    <div class="difficulty-wrapper" aria-hidden="false">
+      <fieldset id="radio-difficulty" class="radio" role="radiogroup" aria-label="Difficulty">
+        <input type="radio" id="lengthCat1" name="length" value="random" onclick="javascript:getNextSample()" />
+        <label for="lengthCat1" class="radio-label">Random</label>
+
+        <input type="radio" id="lengthCat2" name="length" value="easy" checked onclick="javascript:getNextSample()" />
+        <label for="lengthCat2" class="radio-label">Easy</label>
+
+        <input type="radio" id="lengthCat3" name="length" value="medium" onclick="javascript:getNextSample()" />
+        <label for="lengthCat3" class="radio-label">Medium</label>
+
+        <input type="radio" id="lengthCat4" name="length" value="hard" onclick="javascript:getNextSample()" />
+        <label for="lengthCat4" class="radio-label">Hard</label>
+      </fieldset>
+    </div>
+
+    <!-- Bottom center: mic / record controls -->
+    <div id="btn-record" class="mic-button-div" role="region" aria-label="Recording controls">
+      <a id="recordAudio" href="javascript:updateRecordingState()" class="round-button-mic disabled" aria-pressed="false" aria-label="Record">
+        <i id="recordIcon" class="material-icons icon-text-mic">mic</i>
+      </a>
+
+      <!-- <a id="playRecordedIcon" href="javascript:playUserRecording()" class="round-button-play" title="Play recording" aria-label="Play your recording" style="margin-left:8px;">
+        <i id="playRecordedIcon_i" class="material-icons icon-text-play">play_arrow</i>
+      </a> -->
+    </div>
+  </main>
+
+  <!-- footer credits -->
+  <!-- <footer class="app-footer" role="contentinfo" aria-label="Footer">
+    <p class="credits-icon-div">By Pratham Singh.</p>
+  </footer> -->
+
+  <div class="link-icon-div" aria-hidden="true"></div>
+
+  <noscript>
+    <p style="color:#b00;">This app requires JavaScript to function. Please enable JavaScript in your browser.</p>
+  </noscript>
+</body>
+
+</html>
