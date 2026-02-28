@@ -20,3 +20,5 @@ librosa
 ffmpeg-python
 pydub
 gTTS
+edge-tts # for hindi and marathi
+nest_asyncio

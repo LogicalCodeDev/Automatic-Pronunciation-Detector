@@ -5,10 +5,25 @@ import AIModels
 import utilsFileIO
 import os
 import base64
+import asyncio
 
 sampling_rate = 16000
 
-# English TTS — lazy-loaded at first use
+# ─────────────────────────────────────────────────────────────────────────────
+# Voice map: language code → Microsoft Edge TTS neural voice name.
+# These are all Indian-accent voices hosted by Microsoft (free, no API key).
+# Swap female ↔ male by changing the voice name:
+#   Hindi   female: hi-IN-SwaraNeural   male: hi-IN-MadhurNeural
+#   Marathi female: mr-IN-AarohiNeural  male: mr-IN-ManoharNeural
+# ─────────────────────────────────────────────────────────────────────────────
+EDGE_TTS_VOICES = {
+    'hi': 'hi-IN-SwaraNeural',    # Hindi  — Indian female neural voice
+    'mr': 'mr-IN-AarohiNeural',   # Marathi — Indian female neural voice
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# English TTS — lazy-loaded Silero (local, no internet needed)
+# ─────────────────────────────────────────────────────────────────────────────
 _model_TTS_en = None
 
 def _get_english_tts():
@@ -18,41 +33,74 @@ def _get_english_tts():
     return _model_TTS_en
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Edge TTS helper (async → sync wrapper)
+# ─────────────────────────────────────────────────────────────────────────────
+async def _edge_tts_synthesise(text: str, voice: str, mp3_path: str):
+    """Call edge-tts and save output as MP3."""
+    try:
+        import edge_tts
+    except ImportError:
+        raise RuntimeError(
+            "edge-tts is not installed. Run: pip install edge-tts"
+        )
+    communicate = edge_tts.Communicate(text, voice)
+    await communicate.save(mp3_path)
+
+
+def _edge_tts_to_wav(text: str, voice: str, wav_path: str):
+    """
+    Synthesise text with the given Edge TTS voice and write a 16 kHz mono WAV
+    to wav_path.  Works in both plain scripts and environments that already
+    have a running event loop (e.g. Jupyter / some web servers).
+    """
+    mp3_path = wav_path.replace('.wav', '_tmp.mp3')
+
+    # Run the async synthesis
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # Already inside a running loop (e.g. Jupyter): use nest_asyncio
+            import nest_asyncio
+            nest_asyncio.apply()
+        loop.run_until_complete(_edge_tts_synthesise(text, voice, mp3_path))
+    except RuntimeError:
+        # No event loop at all — create a fresh one
+        asyncio.run(_edge_tts_synthesise(text, voice, mp3_path))
+
+    # Convert MP3 → 16 kHz mono WAV using pydub
+    try:
+        from pydub import AudioSegment
+    except ImportError:
+        raise RuntimeError("pydub is not installed. Run: pip install pydub")
+
+    audio_segment = AudioSegment.from_mp3(mp3_path)
+    audio_segment = audio_segment.set_frame_rate(16000).set_channels(1)
+    audio_segment.export(wav_path, format='wav')
+    os.remove(mp3_path)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Main audio-generation function
+# ─────────────────────────────────────────────────────────────────────────────
 def _get_audio_bytes_for_language(text_string: str, language: str) -> bytes:
     """
     Returns raw WAV bytes for the given text and language.
-    - English: uses Silero TTS (local, no internet needed)
-    - Hindi:   uses gTTS (Google TTS, requires internet) because Silero has no Hindi model
+
+    Language routing:
+      'en'        → Silero TTS  (local, no internet)
+      'hi', 'mr'  → Microsoft Edge TTS with Indian neural voices (internet needed)
     """
     random_file_name = utilsFileIO.generateRandomString(20) + '.wav'
 
-    if language in ('hi', 'mr'):
-        # --- Hindi: use gTTS ---
-        try:
-            from gtts import gTTS
-            import io
+    if language in EDGE_TTS_VOICES:
+        voice = EDGE_TTS_VOICES[language]
+        print(f"[lambdaTTS] Using Edge TTS voice: {voice}")
+        _edge_tts_to_wav(text_string, voice, random_file_name)
 
-            # Map internal language code to gTTS language code
-            gtts_lang = 'mr' if language == 'mr' else 'hi'
-            tts = gTTS(text=text_string, lang=gtts_lang, slow=False)
-
-            # gTTS produces MP3; convert to WAV via pydub
-            mp3_fp = io.BytesIO()
-            tts.write_to_fp(mp3_fp)
-            mp3_fp.seek(0)
-
-            from pydub import AudioSegment
-            audio_segment = AudioSegment.from_mp3(mp3_fp)
-            audio_segment = audio_segment.set_frame_rate(16000).set_channels(1)
-            audio_segment.export(random_file_name, format='wav')
-
-        except ImportError:
-            raise RuntimeError(
-                "gTTS and/or pydub are not installed. "
-                "Run: pip install gTTS pydub"
-            )
     else:
-        # --- English (default): use Silero TTS ---
+        # English (default): Silero TTS
+        print(f"[lambdaTTS] Using Silero TTS for language: {language}")
         linear_factor = 0.2
         audio = _get_english_tts().getAudioFromSentence(text_string).detach().numpy() * linear_factor
         sf.write('./' + random_file_name, audio, sampling_rate)
@@ -64,12 +112,14 @@ def _get_audio_bytes_for_language(text_string: str, language: str) -> bytes:
     return audio_bytes
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Lambda / Flask handler
+# ─────────────────────────────────────────────────────────────────────────────
 def lambda_handler(event, context):
 
     body = json.loads(event['body'])
-
     text_string = body['value']
-    language = body.get('language', 'en')  # default to English if not provided
+    language = body.get('language', 'en')
 
     print(f"[lambdaTTS] text='{text_string}', language='{language}'")
 
@@ -85,6 +135,6 @@ def lambda_handler(event, context):
         'body': json.dumps(
             {
                 "wavBase64": str(base64.b64encode(audio_byte_array))[2:-1],
-            },
+            }
         )
     }
