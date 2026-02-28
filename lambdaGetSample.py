@@ -1,4 +1,3 @@
-
 import pandas as pd
 import json
 import RuleBasedModels
@@ -24,7 +23,7 @@ class TextDataset():
 sample_folder = "./databases/"
 lambda_database = {}
 lambda_ipa_converter = {}
-available_languages = ['de', 'en']
+available_languages = ['hi', 'mr', 'en']
 
 for language in available_languages:
     df = pd.read_csv(sample_folder+'data_'+language+'.csv',delimiter=';')

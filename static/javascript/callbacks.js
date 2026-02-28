@@ -524,6 +524,18 @@ const changeLanguage = (language, generateNewSample = false) => {
             languageIdentifier = 'en';
             languageName = 'Daniel';
             break;
+        case 'hi':
+
+            document.getElementById("languageBox").innerHTML = "Hindi";
+            languageIdentifier = 'hi';
+            languageName = 'Rahul';
+            break;
+        case 'mr':
+
+            document.getElementById("languageBox").innerHTML = "Marathi";
+            languageIdentifier = 'mr';
+            languageName = 'Narendra';
+            break;
     };
 
     for (idx = 0; idx < voices.length; idx++) {

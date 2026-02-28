@@ -1,4 +1,3 @@
-
 import torch
 import json
 import os
@@ -18,6 +17,9 @@ import traceback
 trainer_SST_lambda = {}
 # trainer_SST_lambda['de'] = pronunciationTrainer.getTrainer("de")
 trainer_SST_lambda['en'] = pronunciationTrainer.getTrainer("en")
+trainer_SST_lambda['hi'] = pronunciationTrainer.getTrainer("hi")
+trainer_SST_lambda['mr'] = pronunciationTrainer.getTrainer("mr")
+
 
 transform = Resample(orig_freq=48000, new_freq=16000)
 

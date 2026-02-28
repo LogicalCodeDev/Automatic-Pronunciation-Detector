@@ -20,6 +20,10 @@ def getTrainer(language: str):
     #         epitran.Epitran('deu-Latn'))
     if language == 'en':
         phonem_converter = RuleBasedModels.EngPhonemConverter()
+    elif language == 'hi':
+        phonem_converter = RuleBasedModels.HindiIPA()
+    elif language == 'mr':
+        phonem_converter = RuleBasedModels.MarathiIPA()
     else:
         raise ValueError('Language not implemented')
 
