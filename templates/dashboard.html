@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Dashboard — Pronunciation Trainer</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="/static/css/shared.css"/>
+  <link rel="stylesheet" href="/static/css/dashboard.css"/>
+</head>
+
+<body>
+
+  <!-- ── Header ────────────────────────────────────────────── -->
+  <header class="app-header">
+    <div class="header-logo">
+      <div class="logo-icon">🎤</div>
+      <h1 class="app-title">Pronunciation Trainer</h1>
+    </div>
+
+    <div class="header-spacer"></div>
+
+    <a href="/" class="nav-link" title="Back to practice">
+      <span class="material-icons">arrow_back</span>
+      Practice
+    </a>
+
+    <a href="/dashboard" class="nav-link active" title="Dashboard">
+      <span class="material-icons">dashboard</span>
+      Dashboard
+    </a>
+
+    <button class="theme-toggle" onclick="toggleDarkMode()" aria-label="Toggle theme" title="Toggle dark/light mode">
+      <span class="material-icons" id="themeIcon">dark_mode</span>
+    </button>
+  </header>
+
+  <!-- ── Page body ─────────────────────────────────────────── -->
+  <div class="page-body">
+
+    <div class="page-title-row">
+      <div>
+        <div class="page-title">Pronunciation Dashboard</div>
+        <div class="page-subtitle" id="subtitleText">Tracking your pronunciation progress across all sessions</div>
+      </div>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Attempts</div>
+        <div class="stat-value accent" id="statTotal">0</div>
+        <div class="stat-sub">words scored</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Accuracy</div>
+        <div class="stat-value" id="statAvg">—</div>
+        <div class="stat-sub">across all words</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Needs Work</div>
+        <div class="stat-value bad" id="statBad">0</div>
+        <div class="stat-sub">words (category bad)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Well Pronounced</div>
+        <div class="stat-value good" id="statGood">0</div>
+        <div class="stat-sub">words (category good)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Unique Words</div>
+        <div class="stat-value accent" id="statUnique">0</div>
+        <div class="stat-sub">distinct words seen</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Sessions</div>
+        <div class="stat-value accent" id="statSessions">0</div>
+        <div class="stat-sub">sentence attempts</div>
+      </div>
+    </div>
+
+    <!-- Score trend chart (hidden until there is data) -->
+    <div class="chart-wrap" id="chartWrap" style="display:none">
+      <div class="chart-title">📈 Score Trend — Last 30 Sentence Attempts</div>
+      <canvas id="trendCanvas" height="100"></canvas>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <span class="filter-label">Language:</span>
+      <div class="lang-tabs">
+        <input class="lang-tab-input" type="radio" name="langFilter" id="lf_all" value="all" checked/>
+        <label class="lang-tab-label" for="lf_all">All</label>
+
+        <input class="lang-tab-input" type="radio" name="langFilter" id="lf_en" value="en"/>
+        <label class="lang-tab-label" for="lf_en">🇬🇧 EN</label>
+
+        <input class="lang-tab-input" type="radio" name="langFilter" id="lf_hi" value="hi"/>
+        <label class="lang-tab-label" for="lf_hi">🇮🇳 HI</label>
+
+        <input class="lang-tab-input" type="radio" name="langFilter" id="lf_mr" value="mr"/>
+        <label class="lang-tab-label" for="lf_mr">🇮🇳 MR</label>
+      </div>
+
+      <span class="filter-label" style="margin-left:8px">Category:</span>
+      <div class="cat-tabs">
+        <input class="cat-tab-input" type="radio" name="catFilter" id="cf_all" value="all" checked/>
+        <label class="cat-tab-label" for="cf_all">All</label>
+
+        <input class="cat-tab-input" type="radio" name="catFilter" id="cf_bad" value="2"/>
+        <label class="cat-tab-label" for="cf_bad">Needs Work</label>
+
+        <input class="cat-tab-input" type="radio" name="catFilter" id="cf_ok" value="1"/>
+        <label class="cat-tab-label" for="cf_ok">Okay</label>
+
+        <input class="cat-tab-input" type="radio" name="catFilter" id="cf_good" value="0"/>
+        <label class="cat-tab-label" for="cf_good">Good</label>
+      </div>
+
+      <div class="search-box">
+        <span class="material-icons">search</span>
+        <input type="text" id="searchInput" placeholder="Search word…" oninput="applyFilters()"/>
+      </div>
+
+      <button class="clear-btn" onclick="clearAllData()">
+        <span class="material-icons">delete_forever</span>
+        Clear Data
+      </button>
+    </div>
+
+    <!-- Word analysis table -->
+    <div class="table-wrap">
+      <div class="table-header-bar">
+        <span class="material-icons" style="color:var(--accent2);font-size:18px">analytics</span>
+        <span class="table-title">Word Analysis</span>
+        <span class="table-count" id="tableCount">0 words</span>
+      </div>
+      <div id="tableContainer">
+        <div class="empty-state">
+          <span class="material-icons">record_voice_over</span>
+          <p>No pronunciation data yet.<br>
+            <a href="/">Start practicing</a> and your word-level results will appear here automatically.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.page-body -->
+
+  <script src="/static/javascript/dashboard.js" defer></script>
+
+</body>
+</html>
