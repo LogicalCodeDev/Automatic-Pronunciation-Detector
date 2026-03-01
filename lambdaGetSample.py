@@ -1,80 +1,84 @@
 import pandas as pd
 import json
 import RuleBasedModels
-import epitran
 import random
-import pickle
 
 
-class TextDataset():
-    def __init__(self, table):
-        self.table_dataframe = table
+class TextDataset:
+    def __init__(self, table: pd.DataFrame):
+        self.table = table
         self.number_of_samples = len(table)
 
-    def __getitem__(self, idx):
-
-        line = [self.table_dataframe['sentence'].iloc[idx]]
-        return line
+    def __getitem__(self, idx: int):
+        return [self.table["sentence"].iloc[idx]]
 
     def __len__(self):
         return self.number_of_samples
 
 
-sample_folder = "./databases/"
-lambda_database = {}
-lambda_ipa_converter = {}
-available_languages = ['hi', 'mr', 'en']
+# ─── Load all datasets at module import time ────────────────────────────────
+SAMPLE_FOLDER = "./databases/"
+AVAILABLE_LANGUAGES = ["hi", "mr", "en"]
 
-for language in available_languages:
-    df = pd.read_csv(sample_folder+'data_'+language+'.csv',delimiter=';')
-    lambda_database[language] = TextDataset(df)
-    lambda_ipa_converter[language] = RuleBasedModels.get_phonem_converter(language)
+lambda_database: dict[str, TextDataset] = {}
+lambda_ipa_converter: dict[str, "RuleBasedModels.ITextToPhonemModel"] = {}
 
-lambda_translate_new_sample = False
+for _lang in AVAILABLE_LANGUAGES:
+    _df = pd.read_csv(SAMPLE_FOLDER + "data_" + _lang + ".csv", delimiter=";")
+    lambda_database[_lang] = TextDataset(_df)
+    lambda_ipa_converter[_lang] = RuleBasedModels.get_phonem_converter(_lang)
 
 
+# ─── Helpers ─────────────────────────────────────────────────────────────────
+def getSentenceCategory(sentence: str) -> int:
+    """Return 1 (easy), 2 (medium), or 3 (hard) based on word count."""
+    word_count = len(sentence.split())
+    limits = [0, 8, 20, 100_000]
+    for cat in range(len(limits) - 1):
+        if limits[cat] < word_count <= limits[cat + 1]:
+            return cat + 1
+    return 3  # fallback
+
+
+# ─── Lambda handler ──────────────────────────────────────────────────────────
 def lambda_handler(event, context):
+    body = json.loads(event["body"])
+    category = int(body["category"])  # 0 = random, 1 = easy, 2 = medium, 3 = hard
+    language = body.get("language", "en")
 
-    body = json.loads(event['body'])
+    if language not in lambda_database:
+        return json.dumps({"error": f"Language '{language}' not supported."})
 
-    category = int(body['category'])
+    dataset = lambda_database[language]
+    ipa_converter = lambda_ipa_converter[language]
 
-    language = body['language']
+    # Sample with category filter.
+    # Use a hard retry limit so we never spin forever (fixes the silent bare-except loop).
+    MAX_RETRIES = 200
+    current_transcript = None
 
-    sample_in_category = False
+    for attempt in range(MAX_RETRIES):
+        try:
+            idx = random.randint(0, len(dataset) - 1)
+            candidate = dataset[idx]
+            sentence = candidate[0]
 
-    while(not sample_in_category):
-        valid_sequence = False
-        while not valid_sequence:
-            try:
-                sample_idx = random.randint(0, len(lambda_database[language]))
-                current_transcript = lambda_database[language][
-                    sample_idx]
-                valid_sequence = True
-            except:
-                pass
+            sentence_category = getSentenceCategory(sentence)
+            if category == 0 or sentence_category == category:
+                current_transcript = candidate
+                break
+        except Exception as exc:
+            # Log the individual failure, keep trying
+            print(f"[lambdaGetSample] Attempt {attempt} failed: {exc!r}")
 
-        sentence_category = getSentenceCategory(
-            current_transcript[0])
+    if current_transcript is None:
+        return json.dumps({"error": "Could not find a matching sentence after many retries."})
 
-        sample_in_category = (sentence_category ==
-                              category) or category == 0
+    current_ipa = ipa_converter.convertToPhonem(current_transcript[0])
 
-    translated_trascript = ""
-
-    current_ipa = lambda_ipa_converter[language].convertToPhonem(
-        current_transcript[0])
-
-    result = {'real_transcript': current_transcript,
-              'ipa_transcript': current_ipa,
-              'transcript_translation': translated_trascript}
-
+    result = {
+        "real_transcript": current_transcript,
+        "ipa_transcript":  current_ipa,
+        "transcript_translation": "",   # translation removed (no longer supported)
+    }
     return json.dumps(result)
-
-
-def getSentenceCategory(sentence) -> int:
-    number_of_words = len(sentence.split())
-    categories_word_limits = [0, 8, 20, 100000]
-    for category in range(len(categories_word_limits)-1):
-        if number_of_words > categories_word_limits[category] and number_of_words <= categories_word_limits[category+1]:
-            return category+1

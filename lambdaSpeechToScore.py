@@ -477,24 +477,43 @@ def buf_to_float(x, n_bytes=2, dtype=np.float32):
     return scale * np.frombuffer(x, fmt).astype(dtype)
 
 
-
-
 def validate_audio(audio_tensor, sr=16000):
-    """Basic audio validation"""
+    """Basic audio validation – only reject if completely silent."""
     if audio_tensor.numel() == 0:
         raise ValueError("Empty audio tensor")
-    
+
     duration = audio_tensor.shape[1] / sr
-    if duration < 0.1:  # Minimum 100ms
+    if duration < 0.1:
         raise ValueError(f"Audio too short: {duration:.2f}s")
-    
-    if duration > 30.0:  # Maximum 30 seconds
+    if duration > 30.0:
         raise ValueError(f"Audio too long: {duration:.2f}s")
-    
-    # Check for silence
-    rms = torch.sqrt(torch.mean(audio_tensor ** 2))
-    if rms < 0.001:  # Too quiet
-        raise ValueError(f"Audio too quiet: RMS={rms:.4f}")
-    
-    print(f"[validate_audio] Audio valid - duration: {duration:.2f}s, RMS: {rms:.4f}")
+
+    peak = torch.max(torch.abs(audio_tensor))
+    # Print for debugging (optional)
+    print(f"[validate_audio] Peak amplitude: {peak:.4e}")
+
+    if peak < 1e-6:   # effectively silent
+        raise ValueError(f"Audio is completely silent (peak={peak:.4e})")
+
     return True
+
+
+# def validate_audio(audio_tensor, sr=16000):
+#     """Basic audio validation"""
+#     if audio_tensor.numel() == 0:
+#         raise ValueError("Empty audio tensor")
+    
+#     duration = audio_tensor.shape[1] / sr
+#     if duration < 0.1:  # Minimum 100ms
+#         raise ValueError(f"Audio too short: {duration:.2f}s")
+    
+#     if duration > 30.0:  # Maximum 30 seconds
+#         raise ValueError(f"Audio too long: {duration:.2f}s")
+    
+#     # Check for silence
+#     rms = torch.sqrt(torch.mean(audio_tensor ** 2))
+#     if rms < 0.001:  # Too quiet
+#         raise ValueError(f"Audio too quiet: RMS={rms:.4f}")
+    
+#     print(f"[validate_audio] Audio valid - duration: {duration:.2f}s, RMS: {rms:.4f}")
+#     return True
